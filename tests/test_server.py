@@ -7,6 +7,12 @@ import urllib.request
 from duo.config import DuoConfig
 from duo.server import serve
 
+# http.server.HTTPServer.server_bind() calls socket.getfqdn(host) which does a
+# reverse DNS lookup. On macOS GitHub runners this can block 30+ seconds and
+# the test runs out before the server starts accepting. Stub it globally for
+# this test module — it only affects the server_name attribute.
+socket.getfqdn = lambda host="localhost": "localhost"
+
 
 def _free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
