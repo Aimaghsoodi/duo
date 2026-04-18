@@ -32,8 +32,14 @@ jobs:
           path: dist/
 
   pypi:
+    # Requires PyPI trusted publishing to be configured for `duox`:
+    # https://pypi.org/manage/project/duox/settings/publishing/
+    # repo: Aimaghsoodi/duo · workflow: publish.yml · environment: pypi
+    # Until that's set up, this job is a no-op (first release was uploaded
+    # manually via `twine upload`).
     needs: build
     runs-on: ubuntu-latest
+    if: ${{ vars.PYPI_TRUSTED_PUBLISHER == 'true' }}
     environment:
       name: pypi
       url: https://pypi.org/project/duox/
@@ -42,9 +48,6 @@ jobs:
         with:
           name: dist
           path: dist
-      # Configure trusted publishing on PyPI: org `AbteeX AI Labs`,
-      # project `duox`, GitHub repo `aimaghsoodi/duo`, workflow `publish.yml`,
-      # environment `pypi`. No PYPI_API_TOKEN needed once set up.
       - uses: pypa/gh-action-pypi-publish@release/v1
 
   github-release:
@@ -62,9 +65,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" dist/* \
-            --title "DuoX ${GITHUB_REF_NAME}" \
-            --generate-notes
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} already exists — uploading assets only."
+            gh release upload "${GITHUB_REF_NAME}" dist/* --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" dist/* \
+              --title "DuoX ${GITHUB_REF_NAME}" \
+              --generate-notes
+          fi
 
   huggingface-space:
     needs: build
