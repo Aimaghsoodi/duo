@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-wordmark.svg" alt="DuoX — by AbteeX AI Labs" width="420">
+  <img src="https://raw.githubusercontent.com/aimaghsoodi/duo/main/assets/logo-wordmark.svg" alt="DuoX — by AbteeX AI Labs" width="420">
 </p>
 
 <p align="center">
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <em>an <a href="https://huggingface.co/AbteeXAILabs">AbteeX AI Labs</a> release</em> ·
+  <em>an <a href="https://www.abteex.com">AbteeX AI Labs</a> release</em> ·
   <a href="https://aimaghsoodi.github.io/duo/">site</a> ·
   <a href="https://github.com/aimaghsoodi/duo">github</a> ·
   <a href="https://huggingface.co/spaces/AbteeXAILabs/duox">huggingface space</a>
@@ -208,4 +208,4 @@ pytest -q          # 47 tests, 3 OS × 3 Python versions in CI
 
 ## License
 
-MIT © 2026 [AbteeX AI Labs](https://huggingface.co/AbteeXAILabs).
+MIT © 2026 [AbteeX AI Labs](https://www.abteex.com).
