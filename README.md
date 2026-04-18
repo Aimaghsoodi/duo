@@ -7,7 +7,7 @@
   A multi-peer AI CLI orchestrator with shared memory, cross-checking, parallel
   swarms, MCP passthrough, and automatic credit fallback.
 </p>
-
+ 
 <p align="center">
   <em>an <a href="https://huggingface.co/AbteeXAILabs">AbteeX AI Labs</a> release</em> ·
   <a href="https://aimaghsoodi.github.io/duo/">site</a> ·
