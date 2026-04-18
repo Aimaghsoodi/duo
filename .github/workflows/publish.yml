@@ -85,7 +85,7 @@ jobs:
           python - <<'PY'
           import os, shutil, tempfile, subprocess, pathlib
           from huggingface_hub import HfApi, create_repo
-          repo = "AbteeX-AI-Labs/duox"
+          repo = "AbteeXAILabs/duox"
           create_repo(repo, repo_type="space", space_sdk="gradio",
                       token=os.environ["HF_TOKEN"], exist_ok=True)
           api = HfApi(token=os.environ["HF_TOKEN"])

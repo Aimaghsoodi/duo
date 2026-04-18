@@ -41,8 +41,8 @@ Homepage      = "https://github.com/aimaghsoodi/duo"
 Repository    = "https://github.com/aimaghsoodi/duo"
 Issues        = "https://github.com/aimaghsoodi/duo/issues"
 Changelog     = "https://github.com/aimaghsoodi/duo/blob/main/CHANGELOG.md"
-HuggingFace   = "https://huggingface.co/spaces/AbteeX-AI-Labs/duox"
-Organization  = "https://huggingface.co/AbteeX-AI-Labs"
+HuggingFace   = "https://huggingface.co/spaces/AbteeXAILabs/duox"
+Organization  = "https://huggingface.co/AbteeXAILabs"
 
 [tool.hatch.metadata]
 allow-direct-references = true

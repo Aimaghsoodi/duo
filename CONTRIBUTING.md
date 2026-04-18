@@ -34,7 +34,7 @@ pytest -q
 - Tag `vX.Y.Z` on `main`. CI builds sdist + wheel, uploads to PyPI under the
   `AbteeX AI Labs` org via trusted publishing, and cuts a GitHub release.
 - For the HF Space, push `app.py` + `huggingface/README.md` +
-  `huggingface/requirements.txt` to https://huggingface.co/spaces/AbteeX-AI-Labs/duox.
+  `huggingface/requirements.txt` to https://huggingface.co/spaces/AbteeXAILabs/duox.
   Set `HF_TOKEN` as a Space secret (Settings → Variables and secrets).
 
 ## Security

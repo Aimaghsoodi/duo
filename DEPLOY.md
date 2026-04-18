@@ -1,7 +1,7 @@
 # DuoX — Deployment Runbook
 
 Ship **DuoX 0.2.0** to GitHub, PyPI (under the AbteeX AI Labs org), and the
-Hugging Face Space (`AbteeX-AI-Labs/duox`).
+Hugging Face Space (`AbteeXAILabs/duox`).
 
 > ⚠️ **If you ever pasted a real token into chat, a Slack, a PR, or a screenshot,
 > rotate it right now**: https://huggingface.co/settings/tokens.
@@ -13,7 +13,7 @@ Hugging Face Space (`AbteeX-AI-Labs/duox`).
 
 - GitHub account: `aimaghsoodi`
 - PyPI org: **AbteeX AI Labs** (create at https://pypi.org/manage/organizations/)
-- Hugging Face org: **AbteeX-AI-Labs** (create at https://huggingface.co/organizations/new)
+- Hugging Face org: **AbteeXAILabs** (create at https://huggingface.co/organizations/new)
 
 Local tools:
 ```bash
@@ -96,7 +96,7 @@ Manual one-shot push (no CI):
 export HF_TOKEN=$(cat ~/.hf_token)
 python -c "
 from huggingface_hub import HfApi, create_repo
-repo = 'AbteeX-AI-Labs/duox'
+repo = 'AbteeXAILabs/duox'
 create_repo(repo, repo_type='space', space_sdk='gradio', exist_ok=True)
 api = HfApi()
 import shutil, tempfile, pathlib
@@ -121,7 +121,7 @@ duox doctor                                # all peers / readline / MCP
 duox -p "say hi" --output-format json      # headless smoke test
 ```
 
-Visit the Space: https://huggingface.co/spaces/AbteeX-AI-Labs/duox — run an
+Visit the Space: https://huggingface.co/spaces/AbteeXAILabs/duox — run an
 example prompt, confirm the orchestration trace streams.
 
 ---
@@ -137,5 +137,5 @@ gh release delete v0.2.0 -y
 git push origin :refs/tags/v0.2.0
 
 # HF Space — revert commit in the Space's git:
-huggingface-cli upload AbteeX-AI-Labs/duox . --repo-type space --commit-message "rollback"
+huggingface-cli upload AbteeXAILabs/duox . --repo-type space --commit-message "rollback"
 ```

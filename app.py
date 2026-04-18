@@ -170,7 +170,7 @@ LLM emits a JSON decision each turn (`delegate` / `execute_self` / `done`),
 routes to the executor, and stops when the goal is met.
 
 > 🖥️ **Full CLI**: `pip install duox`  ·  `duox`  (Claude + Codex + Ollama + OpenClaw)
-> 📦 **GitHub**: [aimaghsoodi/duo](https://github.com/aimaghsoodi/duo)  ·  **PyPI**: [duox](https://pypi.org/project/duox/)  ·  **HF org**: [AbteeX-AI-Labs](https://huggingface.co/AbteeX-AI-Labs)
+> 📦 **GitHub**: [aimaghsoodi/duo](https://github.com/aimaghsoodi/duo)  ·  **PyPI**: [duox](https://pypi.org/project/duox/)  ·  **HF org**: [AbteeXAILabs](https://huggingface.co/AbteeXAILabs)
 """
 
 

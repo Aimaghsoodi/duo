@@ -79,7 +79,7 @@ user ─► supervisor ─► JSON decision
 
 - 🐙 GitHub: https://github.com/aimaghsoodi/duo
 - 📦 PyPI: https://pypi.org/project/duox/  (under the AbteeX AI Labs org)
-- 🤗 HF org: https://huggingface.co/AbteeX-AI-Labs
+- 🤗 HF org: https://huggingface.co/AbteeXAILabs
 - 🐛 Issues: https://github.com/aimaghsoodi/duo/issues
 
 ## License

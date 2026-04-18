@@ -9,10 +9,10 @@
 </p>
 
 <p align="center">
-  <em>an <a href="https://huggingface.co/AbteeX-AI-Labs">AbteeX AI Labs</a> release</em> ·
+  <em>an <a href="https://huggingface.co/AbteeXAILabs">AbteeX AI Labs</a> release</em> ·
   <a href="https://aimaghsoodi.github.io/duo/">site</a> ·
   <a href="https://github.com/aimaghsoodi/duo">github</a> ·
-  <a href="https://huggingface.co/spaces/AbteeX-AI-Labs/duox">huggingface space</a>
+  <a href="https://huggingface.co/spaces/AbteeXAILabs/duox">huggingface space</a>
 </p>
 
 <p align="center">
@@ -97,7 +97,7 @@ duox --resume abc123   # resume a previous session
 
 A Gradio demo of the orchestration loop is hosted on Hugging Face:
 
-👉 https://huggingface.co/spaces/AbteeX-AI-Labs/duox
+👉 https://huggingface.co/spaces/AbteeXAILabs/duox
 
 ## Features
 
@@ -202,10 +202,10 @@ pytest -q          # 47 tests, 3 OS × 3 Python versions in CI
 
 - PyPI: https://pypi.org/project/duox/
 - GitHub: https://github.com/aimaghsoodi/duo
-- HF Space (demo): https://huggingface.co/spaces/AbteeX-AI-Labs/duox
-- HF model card: https://huggingface.co/AbteeX-AI-Labs/duox
+- HF Space (demo): https://huggingface.co/spaces/AbteeXAILabs/duox
+- HF model card: https://huggingface.co/AbteeXAILabs/duox
 - Issues: https://github.com/aimaghsoodi/duo/issues
 
 ## License
 
-MIT © 2026 [AbteeX AI Labs](https://huggingface.co/AbteeX-AI-Labs).
+MIT © 2026 [AbteeX AI Labs](https://huggingface.co/AbteeXAILabs).

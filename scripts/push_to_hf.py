@@ -6,7 +6,7 @@ Usage:
     py -3 scripts/push_to_hf.py
 
 Uploads app.py + huggingface/README.md + huggingface/requirements.txt to the
-Space at AbteeX-AI-Labs/duox. Creates the Space if it doesn't exist.
+Space at AbteeXAILabs/duox. Creates the Space if it doesn't exist.
 
 DO NOT hard-code the token. DO NOT commit the token. If a token leaks:
     https://huggingface.co/settings/tokens → revoke.
@@ -30,7 +30,7 @@ def main() -> int:
 
     from huggingface_hub import HfApi, create_repo
 
-    repo_id = "AbteeX-AI-Labs/duox"
+    repo_id = "AbteeXAILabs/duox"
     print(f"→ ensuring Space {repo_id} exists…")
     create_repo(repo_id, repo_type="space", space_sdk="gradio",
                 token=token, exist_ok=True)
