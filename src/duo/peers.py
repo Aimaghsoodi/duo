@@ -169,11 +169,14 @@ def _stream(cmd: list[str], role: str, *, stdin_text: Optional[str] = None,
     assert p.stdout is not None
     hb = _Heartbeat(role)
     hb.start()
+    # If a TUI is attached, show a spinner so the user knows this peer is
+    # running (codex exec can be silent for a while before emitting output).
+    if not _quiet and _tui is not None and hasattr(_tui, "status"):
+        try: _tui.status(f"{role} running…")
+        except Exception: pass
     try:
         for line in p.stdout:
             buf.append(line)
-            # Always run line_emit so it can capture state (usage, final result)
-            # from stream-json events. Only the sink output is muted when quiet.
             shown = line_emit(line) if line_emit else line
             if _quiet or not shown:
                 continue
@@ -182,6 +185,9 @@ def _stream(cmd: list[str], role: str, *, stdin_text: Optional[str] = None,
             hb.resume()
     finally:
         hb.stop()
+        if not _quiet and _tui is not None and hasattr(_tui, "clear_status"):
+            try: _tui.clear_status()
+            except Exception: pass
     rc = p.wait()
     err = p.stderr.read() if p.stderr else ""
     if err.strip():

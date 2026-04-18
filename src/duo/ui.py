@@ -75,19 +75,20 @@ TIPS = [
 def welcome(active_peers: list[str], supervisor: str, session_id: str,
             skills: int = 0, mcp: bool = False, tui: bool = False) -> None:
     """Claude-Code-style welcome banner with tips."""
+    from . import __version__
     hdr = color("hdr", "╭" + "─" * 70 + "╮")
     ftr = color("hdr", "╰" + "─" * 70 + "╯")
     bar = color("hdr", "│")
 
     def row(text: str) -> str:
-        # trim control chars when measuring width
         import re as _re
         raw = _re.sub(r"\x1b\[[0-9;]*m", "", text)
         pad = max(0, 68 - len(raw))
         return f"{bar} {text}{' ' * pad} {bar}"
 
     print(hdr)
-    print(row(f"{BOLD}welcome to DuoX{RESET}  {DIM}— peers in one terminal{RESET}"))
+    print(row(f"{BOLD}DuoX{RESET} {DIM}v{__version__}{RESET}  "
+              f"{DIM}— claude × codex peers in one terminal{RESET}"))
     print(row(""))
     peers_s = "  ".join(color(p, p) for p in active_peers) or color("err", "(none)")
     print(row(f"peers:       {peers_s}"))
@@ -100,12 +101,13 @@ def welcome(active_peers: list[str], supervisor: str, session_id: str,
     if flags:
         print(row(f"extras:      {DIM}{'  '.join(flags)}{RESET}"))
     print(row(""))
-    print(row(f"{BOLD}quick tips{RESET}"))
-    # show 5 rotating tips
-    import random as _r
-    for title, ex in _r.sample(TIPS, min(5, len(TIPS))):
-        print(row(f"  {color('hdr', '›')} {title}"))
-        print(row(f"      {DIM}{ex}{RESET}"))
+    print(row(f"{BOLD}getting started{RESET}"))
+    print(row(f"  {color('hdr', '1.')} type any goal and press enter"))
+    print(row(f"     {DIM}e.g. 'add a /health endpoint to server.py'{RESET}"))
+    print(row(f"  {color('hdr', '2.')} claude plans, codex executes — both stream live"))
+    print(row(f"     {DIM}tool calls show as ● Read(file) / ● Write(path){RESET}"))
+    print(row(f"  {color('hdr', '3.')} slash-commands for power moves"))
+    print(row(f"     {DIM}/help  /tips  /doctor  /parallel on  /model  /quit{RESET}"))
     print(row(""))
     print(row(f"{DIM}type {RESET}/help{DIM} for the full command list, "
               f"{RESET}/quit{DIM} to exit{RESET}"))
