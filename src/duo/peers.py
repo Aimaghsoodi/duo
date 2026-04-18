@@ -172,10 +172,10 @@ def _stream(cmd: list[str], role: str, *, stdin_text: Optional[str] = None,
     try:
         for line in p.stdout:
             buf.append(line)
-            if _quiet:
-                continue
+            # Always run line_emit so it can capture state (usage, final result)
+            # from stream-json events. Only the sink output is muted when quiet.
             shown = line_emit(line) if line_emit else line
-            if not shown:
+            if _quiet or not shown:
                 continue
             hb.pause()
             _sink(role, shown if shown.endswith("\n") else shown + "\n")
