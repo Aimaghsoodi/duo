@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" role="img" aria-label="duo — by AbteeX AI Labs">
+  <title>duo — by AbteeX AI Labs</title>
+  <g transform="translate(24,20)">
+    <path d="M80 0 A80 80 0 0 0 80 160 Z" fill="#f48fb1"/>
+    <path d="M80 0 A80 80 0 0 1 80 160 Z" fill="#a5d6a7"/>
+    <rect x="78" y="-4" width="4" height="168" fill="#0d1117"/>
+  </g>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" fill="#e6edf3">
+    <text x="216" y="112" font-size="96" font-weight="700" letter-spacing="-2">duo</text>
+    <text x="218" y="148" font-size="20" fill="#8b949e">claude × codex · by AbteeX AI Labs</text>
+  </g>
+</svg>

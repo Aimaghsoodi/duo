@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "duox"
+version = "0.2.0"
+description = "DuoX — multi-peer AI CLI orchestrator (Claude + Codex + Ollama + OpenClaw). Shared transcript, parallel swarms, cross-checking, credit fallback, MCP, headless mode. By AbteeX AI Labs."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "AbteeX AI Labs" }]
+maintainers = [{ name = "AbteeX AI Labs" }]
+keywords = ["duox", "duo", "claude", "codex", "cli", "agents", "swarm", "multi-agent", "orchestrator", "anthropic", "openai", "ollama", "mcp", "abteex"]
+dependencies = [
+    "rich>=13.7",
+    'tomli>=2.0; python_version < "3.11"',
+    'pyreadline3>=3.4; sys_platform == "win32"',
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+duox = "duo.cli:main"
+duo  = "duo.cli:main"   # legacy alias
+
+[project.urls]
+Homepage      = "https://github.com/aimaghsoodi/duo"
+Repository    = "https://github.com/aimaghsoodi/duo"
+Issues        = "https://github.com/aimaghsoodi/duo/issues"
+Changelog     = "https://github.com/aimaghsoodi/duo/blob/main/CHANGELOG.md"
+HuggingFace   = "https://huggingface.co/spaces/AbteeX-AI-Labs/duox"
+Organization  = "https://huggingface.co/AbteeX-AI-Labs"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/duo"]
+sources = ["src"]
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "src/duo",
+    "assets",
+    "docs",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "duo.ps1",
+    "pyproject.toml",
+]

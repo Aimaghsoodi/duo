@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>duo — Claude Code × Codex CLI, together · AbteeX AI Labs</title>
+<meta name="description" content="duo is a tiny wrapper that runs Claude Code and Codex CLI as peers in one terminal — multi-agent swarms, continuous cross-checking, automatic credit fallback. By AbteeX AI Labs.">
+<meta property="og:title" content="duo — Claude Code × Codex CLI, together">
+<meta property="og:description" content="One prompt, two agents, a swarm of sub-agents. Claude plans and validates; Codex executes. By AbteeX AI Labs.">
+<meta property="og:image" content="assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="assets/og.png">
+<link rel="icon" href="assets/logo.svg">
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --line:#30363d;
+    --text:#e6edf3; --muted:#8b949e;
+    --claude:#f48fb1; --codex:#a5d6a7; --accent:#79c0ff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:920px;margin:0 auto;padding:56px 24px 96px}
+  header{display:flex;align-items:center;gap:16px;margin-bottom:8px}
+  header img{width:56px;height:56px}
+  header .lab{color:var(--muted);font-size:14px}
+  header .lab strong{color:var(--text);font-weight:600}
+  h1{font-size:clamp(36px,6vw,64px);line-height:1.05;letter-spacing:-.02em;margin:24px 0 8px}
+  h1 .x{color:var(--muted);font-weight:400}
+  h1 .c1{color:var(--claude)}
+  h1 .c2{color:var(--codex)}
+  .tag{color:var(--muted);font-size:18px;max-width:56ch}
+  .cta{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0 40px}
+  .btn{display:inline-block;padding:10px 16px;border:1px solid var(--line);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:14px;background:var(--panel)}
+  .btn.primary{border-color:var(--accent);color:var(--accent)}
+  .btn:hover{border-color:var(--accent);text-decoration:none}
+  section{margin:48px 0}
+  h2{font-size:22px;margin:0 0 12px;letter-spacing:-.01em}
+  p{color:#c9d1d9}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card h3{margin:0 0 6px;font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted)}
+  .card p{margin:0;color:var(--text);font-size:15px}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;overflow:auto;font-family:var(--mono);font-size:13px;line-height:1.5;color:var(--text)}
+  code{font-family:var(--mono);font-size:.95em;background:#1f242c;padding:1px 6px;border-radius:4px}
+  pre code{background:transparent;padding:0}
+  .k-claude{color:var(--claude)}
+  .k-codex{color:var(--codex)}
+  .k-muted{color:var(--muted)}
+  .k-user{color:#d2a8ff}
+  footer{margin-top:72px;padding-top:24px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="assets/logo.svg" alt="duo logo">
+    <div class="lab">an <strong>AbteeX AI Labs</strong> release</div>
+  </header>
+
+  <h1><span class="c1">claude</span> <span class="x">×</span> <span class="c2">codex</span>, together.</h1>
+  <p class="tag">
+    <strong>duo</strong> is a tiny wrapper that runs Claude Code and Codex CLI as peers in one terminal —
+    with multi-agent swarms, continuous cross-checking, and automatic credit fallback.
+    One prompt, two agents, a swarm of sub-agents, a single shared transcript.
+  </p>
+
+  <div class="cta">
+    <a class="btn primary" href="https://github.com/aimaghsoodi/duo">★ GitHub</a>
+    <a class="btn" href="https://github.com/aimaghsoodi/duo#install">Install</a>
+    <a class="btn" href="#how">How it works</a>
+  </div>
+
+  <section>
+    <h2>Why duo</h2>
+    <div class="grid">
+      <div class="card"><h3>peer to peer</h3><p>Claude plans &amp; validates. Codex executes. Both see the same transcript.</p></div>
+      <div class="card"><h3>swarm by default</h3><p>Each peer may spawn sub-agents in parallel for independent sub-tasks.</p></div>
+      <div class="card"><h3>continuous check</h3><p>Every delegated step is validated before the next — not fixed turns.</p></div>
+      <div class="card"><h3>credit fallback</h3><p>If one peer hits a rate-limit or quota, the other takes over cleanly.</p></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>Install &amp; run</h2>
+    <pre><code># Requires Python 3.10+ and both CLIs installed &amp; logged in:
+#   claude   (Claude Code)
+#   codex    (Codex CLI)
+
+pip install duox
+
+duox "scaffold a python todo cli in ./scratch with pytest tests"
+duox --once "fix the failing auth tests"        # one-shot, then exit
+duox -p "summarise recent changes" --output-format json
+duox doctor                                     # verify peers / MCP / readline</code></pre>
+  </section>
+
+  <section>
+    <h2>What you see</h2>
+<pre><code><span class="k-user">▸ USER GOAL</span>
+<span class="k-user">│ scaffold a python todo cli in ./scratch with pytest tests</span>
+
+<span class="k-claude">┌─ step  1 · CLAUDE · decide  · 14:22:07</span>
+<span class="k-claude">│ decision: delegate → codex   fan out scaffolding + failing tests in parallel</span>
+<span class="k-claude">│   sub-agent A: create ./scratch/todo/{__init__.py,cli.py}</span>
+<span class="k-claude">│   sub-agent B: create tests/test_cli.py with 3 failing cases</span>
+<span class="k-claude">│   sub-agent C: write pyproject.toml with [project.scripts]</span>
+
+<span class="k-codex">┌─ step  1 · CODEX · execute  · 14:22:09</span>
+<span class="k-codex">│ spawning 3 sub-agents in parallel…</span>
+<span class="k-codex">│ A ✓   B ✓   C ✓</span>
+
+<span class="k-claude">┌─ step  1 · CLAUDE · validate · 14:22:41</span>
+<span class="k-claude">│ • files created ✓</span>
+<span class="k-claude">│ • pytest reports 3 failing tests ✓</span>
+<span class="k-claude">│ • next: implement cli.add / cli.list to make tests pass</span></code></pre>
+  </section>
+
+  <section>
+    <h2>Safety</h2>
+    <p>duo runs both CLIs with their most permissive flags so they can actually do work without interrupting you.
+    Use it in a directory you trust — ideally a scratch repo, container, or VM. Read the transcript; these are still agents.</p>
+  </section>
+
+  <footer>
+    <div>© 2026 <strong>AbteeX AI Labs</strong> · MIT License</div>
+    <div><a href="https://github.com/aimaghsoodi/duo">github.com/aimaghsoodi/duo</a></div>
+  </footer>
+
+</div>
+</body>
+</html>
