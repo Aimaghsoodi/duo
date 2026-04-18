@@ -1,20 +1,20 @@
-"""Live TUI.
+"""Inline streaming UI — Claude-Code / Codex-CLI style.
 
-Default mode: single scrolling transcript pane + status bar — feels like
-the Claude Code / Codex CLI. Per-peer side-by-side panes kick in when
-parallel mode is on or 3+ peers are active.
+No full-screen layout, no boxes, no flicker. Every streamed line prints
+directly into the terminal scrollback with a colored role glyph, exactly
+like `claude` and `codex`. A single spinner line shows "thinking" state
+and is cleared the moment real output arrives. Works identically for one
+peer or many running in parallel — peers just interleave by role.
 """
 
 from __future__ import annotations
 
+import itertools
+import sys
 import threading
 import time
-from collections import deque
 
 from rich.console import Console
-from rich.layout import Layout
-from rich.live import Live
-from rich.panel import Panel
 from rich.text import Text
 
 from . import peers as peers_mod
@@ -28,182 +28,105 @@ ROLE_COLORS = {
     "system":   "white",
     "err":      "red",
     "user":     "yellow",
+    "sup":      "bold cyan",
 }
 
 ROLE_GLYPHS = {
     "claude":   "◆",
     "codex":    "◇",
     "ollama":   "○",
-    "openclaw": "🦞",
+    "openclaw": "◈",
     "system":   "·",
     "err":      "✖",
     "user":     "▸",
+    "sup":      "▸",
 }
 
-
-class _PaneState:
-    def __init__(self, name: str, max_lines: int = 400) -> None:
-        self.name = name
-        self.lines: deque[tuple[str, str]] = deque(maxlen=max_lines)  # (role, text)
-        self.last_activity = 0.0
-
-    def add(self, role: str, line: str) -> None:
-        for part in line.rstrip("\n").splitlines() or [""]:
-            self.lines.append((role, part))
-        self.last_activity = time.time()
+SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
 
 class TUI:
+    """Inline stream printer. Same public API as before (sink / enter / exit)."""
+
     def __init__(self, state) -> None:
         self.state = state
-        self.console = Console()
-        self.chat = _PaneState("chat", max_lines=800)
-        self.peer_panes: dict[str, _PaneState] = {
-            n: _PaneState(n) for n in state.peers.keys()
-        }
+        self.console = Console(soft_wrap=True, highlight=False)
         self._lock = threading.Lock()
-        self._live: Live | None = None
         self._stop = threading.Event()
         self._thr: threading.Thread | None = None
-        self._t0 = time.time()
         self._prev_sink = None
+        self._current_role: str | None = None
+        self._at_line_start = True
+        self._spinner_on = False
+        self._spinner_text = ""
+        self._spinner_thread: threading.Thread | None = None
 
-    # --- mode detection ---
-    def _split_mode(self) -> bool:
-        if getattr(self.state, "parallel", False):
-            return True
-        return len([p for p in self.state.peers.values() if p.cmd_ok]) >= 3
-
-    # --- sink: every streamed line goes through here ---
+    # --- sink: every streamed chunk flows through here ---
     def sink(self, role: str, line: str) -> None:
         with self._lock:
-            self.chat.add(role, line)
-            if role in self.peer_panes:
-                self.peer_panes[role].add(role, line)
-            elif role == "err" and self.peer_panes:
-                target = max(self.peer_panes.values(),
-                             key=lambda p: p.last_activity, default=None)
-                if target:
-                    target.add(role, line)
+            self._clear_spinner_locked()
+            for part in (line.rstrip("\n").splitlines() or [""]):
+                self._print_line_locked(role, part)
 
-    # --- rendering ---
-    def _format_line(self, role: str, text: str) -> Text:
+    def _print_line_locked(self, role: str, text: str) -> None:
         color = ROLE_COLORS.get(role, "white")
         glyph = ROLE_GLYPHS.get(role, "·")
+        if role == self._current_role and not self._at_line_start:
+            self.console.print(Text("   " + text))
+            return
         t = Text()
-        t.append(f" {glyph} ", style=f"bold {color}")
-        t.append(f"{role:<6} ", style=f"dim {color}")
-        t.append("│ ", style="dim")
+        t.append(f" {glyph} ", style=color)
+        t.append(f"{role:<7}", style=f"dim {color}")
+        t.append("  ")
         t.append(text)
-        return t
+        self.console.print(t)
+        self._current_role = role
+        self._at_line_start = True
 
-    def _chat_panel(self) -> Panel:
-        if not self.chat.lines:
-            body: Text | str = Text("(waiting for peers)", style="dim")
-        else:
-            # render as a single Text with per-line styling, keeping only what fits
-            height = max(8, (self.console.size.height or 24) - 6)
-            recent = list(self.chat.lines)[-height:]
-            body = Text()
-            for i, (role, text) in enumerate(recent):
-                if i > 0:
-                    body.append("\n")
-                body.append_text(self._format_line(role, text))
-        title = f"[bold cyan]duo[/] · session transcript"
-        return Panel(body, title=title, border_style="cyan", padding=(0, 1))
+    # --- spinner (single-line, in-place) ---
+    def _spinner_loop(self) -> None:
+        frames = itertools.cycle(SPINNER_FRAMES)
+        while self._spinner_on and not self._stop.is_set():
+            with self._lock:
+                if not self._spinner_on:
+                    return
+                frame = next(frames)
+                sys.stdout.write(f"\r\033[2K \033[36m{frame}\033[0m  "
+                                 f"\033[2m{self._spinner_text}\033[0m")
+                sys.stdout.flush()
+            time.sleep(0.08)
 
-    def _peer_panel(self, name: str) -> Panel:
-        pane = self.peer_panes[name]
-        peer = self.state.peers[name]
-        color = ROLE_COLORS.get(name, "white")
-        idle = time.time() - pane.last_activity if pane.last_activity else None
-        bits = [f"calls={peer.calls}", f"time={peer.seconds:.1f}s"]
-        if not peer.alive:
-            bits.append("[red]EXHAUSTED[/]")
-        elif idle is not None and idle < 2.0:
-            bits.append(f"[{color}]● streaming[/]")
-        elif peer.calls == 0:
-            bits.append("[dim]idle[/]")
-        else:
-            bits.append("[dim]waiting[/]")
-        title = f"[bold {color}]{name}[/] · " + " · ".join(bits)
-        if not pane.lines:
-            body: Text | str = Text("(no output yet)", style="dim")
-        else:
-            body = Text("\n".join(t for _, t in pane.lines))
-        return Panel(body, title=title, border_style=color, padding=(0, 1))
+    def _clear_spinner_locked(self) -> None:
+        if self._spinner_on:
+            sys.stdout.write("\r\033[2K")
+            sys.stdout.flush()
+            self._spinner_on = False
 
-    def _status_line(self) -> Text:
-        parts = []
-        for n, p in self.state.peers.items():
-            if not p.cmd_ok:
-                parts.append(f"[dim]{n}:missing[/]")
-                continue
-            c = ROLE_COLORS.get(n, "white")
-            tok = ""
-            ti, to = p.extra.get("tokens_in", 0), p.extra.get("tokens_out", 0)
-            if ti or to:
-                tok = f" {ti}/{to}t"
-            parts.append(f"[{c}]{n}[/] {p.calls}c/{p.seconds:.0f}s{tok}")
-        flags = []
-        if getattr(self.state, "parallel", False):
-            flags.append("[cyan]parallel[/]")
-        if self.state.skills:
-            flags.append(f"skills={len(self.state.skills)}")
-        if self.state.mcp_config_path:
-            flags.append("mcp")
-        flag_s = "  " + "  ".join(flags) if flags else ""
-        status = (
-            f"[bold cyan]duo[/] step {self.state.step}  "
-            f"sup=[{ROLE_COLORS.get(self.state.supervisor,'white')}]"
-            f"{self.state.supervisor}[/]  "
-            f"elapsed={time.time() - self._t0:.0f}s   "
-            + "  ".join(parts) + flag_s
-            + "   [dim]/help · /quit[/]"
-        )
-        return Text.from_markup(status)
+    def status(self, text: str) -> None:
+        """Show a live spinner line — cleared as soon as output arrives."""
+        with self._lock:
+            self._clear_spinner_locked()
+            self._spinner_text = text
+            self._spinner_on = True
+        if not self._spinner_thread or not self._spinner_thread.is_alive():
+            self._spinner_thread = threading.Thread(
+                target=self._spinner_loop, daemon=True)
+            self._spinner_thread.start()
 
-    def _render(self) -> Layout:
-        layout = Layout()
-        if self._split_mode():
-            panels = [self._peer_panel(n) for n, p in self.state.peers.items() if p.cmd_ok]
-            inner = Layout()
-            inner.split_row(*[Layout(p, name=f"p{i}") for i, p in enumerate(panels)])
-            main = inner
-        else:
-            main = Layout(self._chat_panel())
+    def clear_status(self) -> None:
+        with self._lock:
+            self._clear_spinner_locked()
 
-        layout.split_column(
-            Layout(main, ratio=1),
-            Layout(self._status_line(), size=1, name="status"),
-        )
-        return layout
-
-    def _run(self) -> None:
-        # auto_refresh=False: we drive repaints ourselves to avoid fighting
-        # Rich's internal refresh thread (which can cause flicker).
-        with Live(self._render(), console=self.console,
-                  auto_refresh=False, screen=False, transient=True) as live:
-            self._live = live
-            while not self._stop.is_set():
-                with self._lock:
-                    try:
-                        live.update(self._render(), refresh=True)
-                    except Exception:
-                        pass
-                time.sleep(0.1)
-
+    # --- lifecycle ---
     def __enter__(self) -> "TUI":
         self._prev_sink = peers_mod._sink
         peers_mod.set_sink(self.sink)
-        self._thr = threading.Thread(target=self._run, daemon=True)
-        self._thr.start()
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
         self._stop.set()
-        if self._thr:
-            self._thr.join(timeout=1.0)
+        with self._lock:
+            self._clear_spinner_locked()
         peers_mod.set_sink(self._prev_sink)
 
 

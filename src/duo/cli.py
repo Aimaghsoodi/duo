@@ -252,7 +252,8 @@ def _interactive_loop(state: State, cfg: DuoConfig, session, args, skills) -> in
                 tui_ctx.__exit__(None, None, None)
                 tui_ctx = None
             try:
-                pending = editor.prompt(color("user", "\nyou ▸ ")).strip()
+                print(color("system", "\n" + "─" * 60))
+                pending = editor.prompt(color("user", "you ▸ ")).strip()
             except (KeyboardInterrupt, EOFError):
                 print()
                 break

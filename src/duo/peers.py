@@ -132,7 +132,15 @@ class _Heartbeat:
 
 
 def _stream(cmd: list[str], role: str, *, stdin_text: Optional[str] = None,
-            cwd: Optional[str] = None) -> tuple[str, str, int]:
+            cwd: Optional[str] = None,
+            line_emit: Optional[Callable[[str], Optional[str]]] = None
+            ) -> tuple[str, str, int]:
+    """Run `cmd`, forwarding stdout lines to the sink live.
+
+    `line_emit`, if given, receives each raw stdout line and returns the text
+    to show to the user (or None to suppress). Use this to convert JSONL
+    stream events into human-readable chunks while still capturing raw output.
+    """
     try:
         p = subprocess.Popen(
             cmd,
@@ -158,10 +166,14 @@ def _stream(cmd: list[str], role: str, *, stdin_text: Optional[str] = None,
     try:
         for line in p.stdout:
             buf.append(line)
-            if not _quiet:
-                hb.pause()
-                _sink(role, line)
-                hb.resume()
+            if _quiet:
+                continue
+            shown = line_emit(line) if line_emit else line
+            if not shown:
+                continue
+            hb.pause()
+            _sink(role, shown if shown.endswith("\n") else shown + "\n")
+            hb.resume()
     finally:
         hb.stop()
     rc = p.wait()
@@ -174,30 +186,58 @@ def _stream(cmd: list[str], role: str, *, stdin_text: Optional[str] = None,
 
 def run_claude(peer: Peer, prompt: str, cwd: str, *, as_json: bool = False,
                mcp_config: Optional[str] = None) -> tuple[str, bool]:
-    # Request JSON always so we can parse usage/tokens; surface text via `.result`.
+    # stream-json: Claude emits one JSON event per line — we parse deltas live
+    # so the user sees tokens as they're generated instead of waiting for the
+    # full result blob.
     cmd = [_which("claude"), "-p", "--dangerously-skip-permissions",
-           "--output-format", "json"]
+           "--verbose", "--output-format", "stream-json"]
     if mcp_config:
         cmd += ["--mcp-config", mcp_config]
+
+    state = {"result": "", "in_tok": 0, "out_tok": 0}
+
+    def emit(raw: str) -> Optional[str]:
+        s = raw.strip()
+        if not s:
+            return None
+        try:
+            ev = json.loads(s)
+        except Exception:
+            return None  # non-JSON lines (warnings etc) — suppress
+        et = ev.get("type")
+        if et == "assistant":
+            msg = ev.get("message") or {}
+            parts = []
+            for block in (msg.get("content") or []):
+                btype = block.get("type")
+                if btype == "text":
+                    parts.append(block.get("text", ""))
+                elif btype == "tool_use":
+                    name = block.get("name", "tool")
+                    parts.append(f"[tool·{name}]")
+            text = "".join(parts).strip()
+            return text or None
+        if et == "result":
+            state["result"] = (ev.get("result") or "").strip()
+            usage = ev.get("usage") or {}
+            state["in_tok"] = int(usage.get("input_tokens", 0) or 0)
+            state["out_tok"] = int(usage.get("output_tokens", 0) or 0)
+            return None
+        if et == "system":
+            return None  # init/meta noise
+        return None
+
     t0 = time.time()
     peer.calls += 1
-    stdout, stderr, rc = _stream(cmd, peer.name, stdin_text=prompt, cwd=cwd)
+    stdout, stderr, rc = _stream(cmd, peer.name, stdin_text=prompt, cwd=cwd,
+                                 line_emit=emit)
     peer.seconds += time.time() - t0
     blob = stdout + "\n" + stderr
     if rc != 0 and is_exhausted(blob):
         return (blob, True)
-    result_text = stdout.strip()
-    try:
-        data = json.loads(stdout)
-        result_text = data.get("result") or data.get("text") or stdout
-        usage = (data.get("usage") or {})
-        peer.extra["tokens_in"] = peer.extra.get("tokens_in", 0) + int(
-            usage.get("input_tokens", 0) or 0)
-        peer.extra["tokens_out"] = peer.extra.get("tokens_out", 0) + int(
-            usage.get("output_tokens", 0) or 0)
-    except Exception:
-        pass
-    return (result_text if isinstance(result_text, str) else str(result_text), False)
+    peer.extra["tokens_in"] = peer.extra.get("tokens_in", 0) + state["in_tok"]
+    peer.extra["tokens_out"] = peer.extra.get("tokens_out", 0) + state["out_tok"]
+    return (state["result"] or stdout.strip(), False)
 
 
 def run_codex(peer: Peer, prompt: str, cwd: str) -> tuple[str, bool]:
