@@ -27,6 +27,18 @@ def _emit(role: str, text: str) -> None:
         sink(role, text + "\n")
 
 
+def _status(text: str) -> None:
+    """Show a live spinner line if the TUI supports it, else a plain emit."""
+    tui = getattr(_peers_mod, "_tui", None)
+    if tui is not None and hasattr(tui, "status"):
+        try:
+            tui.status(text)
+            return
+        except Exception:
+            pass
+    _emit("system", f"· {text}")
+
+
 @dataclass
 class Turn:
     role: str
@@ -188,7 +200,7 @@ def _decide(state: State, goal: str) -> dict:
     task = (SUPERVISOR_SYSTEM
             + f"\nAvailable executor peers: {available}"
             + f"\nUser goal:\n{goal}\n\nRespond with the JSON decision now.")
-    _emit("system", f"· {state.supervisor} deciding…")
+    _status(f"{state.supervisor} deciding…")
     with _peers_mod.quiet_stream():
         raw = _call(state, state.supervisor, task)
     m = re.search(r"\{[\s\S]*\}", raw)
@@ -259,7 +271,7 @@ def run_goal(state: State, goal: str, max_steps: int = 30) -> None:
                 results = _call_parallel(state, state.executors(), instr + SWARM_HINT)
                 combined = "\n\n".join(f"=== {n} ===\n{t}" for n, t in results.items())
                 state.log("system", combined)
-                _emit("system", f"· {state.supervisor} merging parallel results…")
+                _status(f"{state.supervisor} merging parallel results…")
                 with _peers_mod.quiet_stream():
                     check = _call(state, state.supervisor,
                         "You ran the same instruction on multiple peers in parallel. "
@@ -274,7 +286,7 @@ def run_goal(state: State, goal: str, max_steps: int = 30) -> None:
                 out = _call(state, target, instr + SWARM_HINT)
                 state.log(target, out)
 
-                _emit("system", f"· {state.supervisor} validating…")
+                _status(f"{state.supervisor} validating…")
                 with _peers_mod.quiet_stream():
                     check = _call(state, state.supervisor,
                         "Validate the latest peer output against the user goal. "

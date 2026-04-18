@@ -121,6 +121,7 @@ class TUI:
     def __enter__(self) -> "TUI":
         self._prev_sink = peers_mod._sink
         peers_mod.set_sink(self.sink)
+        peers_mod.set_tui(self)
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
@@ -128,6 +129,7 @@ class TUI:
         with self._lock:
             self._clear_spinner_locked()
         peers_mod.set_sink(self._prev_sink)
+        peers_mod.set_tui(None)
 
 
 def live_tui(state) -> TUI:

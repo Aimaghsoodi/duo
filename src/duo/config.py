@@ -41,7 +41,7 @@ class DuoConfig:
     hooks: dict = field(default_factory=dict)         # {"pre_step": [...], "post_step": [...]}
     mcp: dict = field(default_factory=dict)           # raw table passed through to claude
     openclaw: dict = field(default_factory=dict)      # {"thinking": "high", "args": [...]}
-    parallel_default: bool = False
+    parallel_default: bool = True
     api_port: int = 8787
     raw: dict = field(default_factory=dict)
 
@@ -100,7 +100,7 @@ supervisor = "claude"
 ollama_model = "llama3.1"
 tui        = "auto"                    # auto | on | off
 max_steps  = 30
-parallel_default = false
+parallel_default = true   # fan every goal out to all executor peers simultaneously
 api_port   = 8787
 
 [hooks]

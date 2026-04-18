@@ -48,11 +48,17 @@ def _default_sink(role: str, line: str) -> None:
 # Current sink — swapped by the TUI when active.
 _sink: Sink = _default_sink
 _quiet: bool = False
+_tui = None  # live TUI instance, if any — orchestrator uses its spinner
 
 
 def set_sink(sink: Optional[Sink]) -> None:
     global _sink
     _sink = sink or _default_sink
+
+
+def set_tui(tui) -> None:
+    global _tui
+    _tui = tui
 
 
 class quiet_stream:
@@ -194,7 +200,19 @@ def run_claude(peer: Peer, prompt: str, cwd: str, *, as_json: bool = False,
     if mcp_config:
         cmd += ["--mcp-config", mcp_config]
 
-    state = {"result": "", "in_tok": 0, "out_tok": 0}
+    state = {"result": "", "in_tok": 0, "out_tok": 0, "tool_ids": {}}
+
+    def _tool_arg(name: str, inp: dict) -> str:
+        """Extract the most informative argument for a tool call (Claude-Code style)."""
+        if not isinstance(inp, dict):
+            return ""
+        for key in ("file_path", "path", "notebook_path", "pattern",
+                    "command", "url", "query", "prompt"):
+            v = inp.get(key)
+            if v:
+                s = str(v)
+                return s if len(s) < 80 else s[:77] + "…"
+        return ""
 
     def emit(raw: str) -> Optional[str]:
         s = raw.strip()
@@ -203,28 +221,46 @@ def run_claude(peer: Peer, prompt: str, cwd: str, *, as_json: bool = False,
         try:
             ev = json.loads(s)
         except Exception:
-            return None  # non-JSON lines (warnings etc) — suppress
+            return None
         et = ev.get("type")
         if et == "assistant":
             msg = ev.get("message") or {}
-            parts = []
+            lines: list[str] = []
             for block in (msg.get("content") or []):
                 btype = block.get("type")
                 if btype == "text":
-                    parts.append(block.get("text", ""))
+                    txt = (block.get("text") or "").rstrip()
+                    if txt:
+                        lines.append(txt)
                 elif btype == "tool_use":
-                    name = block.get("name", "tool")
-                    parts.append(f"[tool·{name}]")
-            text = "".join(parts).strip()
-            return text or None
+                    tname = block.get("name", "tool")
+                    arg = _tool_arg(tname, block.get("input") or {})
+                    state["tool_ids"][block.get("id", "")] = tname
+                    lines.append(f"● {tname}({arg})" if arg else f"● {tname}")
+            return "\n".join(lines) or None
+        if et == "user":
+            # tool_result events come back as user role with content
+            msg = ev.get("message") or {}
+            lines: list[str] = []
+            for block in (msg.get("content") or []):
+                if block.get("type") == "tool_result":
+                    tname = state["tool_ids"].get(block.get("tool_use_id", ""), "")
+                    content = block.get("content")
+                    if isinstance(content, list):
+                        content = "".join(c.get("text", "") for c in content
+                                          if isinstance(c, dict))
+                    summary = (content or "").strip().splitlines()
+                    first = summary[0][:80] if summary else ""
+                    more = f" (+{len(summary)-1} lines)" if len(summary) > 1 else ""
+                    if first:
+                        lines.append(f"  ⎿  {first}{more}")
+            return "\n".join(lines) or None
         if et == "result":
             state["result"] = (ev.get("result") or "").strip()
             usage = ev.get("usage") or {}
             state["in_tok"] = int(usage.get("input_tokens", 0) or 0)
             state["out_tok"] = int(usage.get("output_tokens", 0) or 0)
             return None
-        if et == "system":
-            return None  # init/meta noise
         return None
 
     t0 = time.time()
