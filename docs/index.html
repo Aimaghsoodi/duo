@@ -3,134 +3,281 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>duo — Claude Code × Codex CLI, together · AbteeX AI Labs</title>
-<meta name="description" content="duo is a tiny wrapper that runs Claude Code and Codex CLI as peers in one terminal — multi-agent swarms, continuous cross-checking, automatic credit fallback. By AbteeX AI Labs.">
-<meta property="og:title" content="duo — Claude Code × Codex CLI, together">
-<meta property="og:description" content="One prompt, two agents, a swarm of sub-agents. Claude plans and validates; Codex executes. By AbteeX AI Labs.">
-<meta property="og:image" content="assets/og.png">
+<title>DuoX — multi-peer AI CLI orchestrator · AbteeX AI Labs</title>
+<meta name="description" content="DuoX is a drop-in CLI alternative to Claude Code and Codex CLI that runs them together — plus Ollama and OpenClaw — under one supervisor loop with a shared transcript.">
+<meta property="og:title" content="DuoX — Claude + Codex + Ollama + OpenClaw, one terminal">
+<meta property="og:description" content="One prompt, many peers, one transcript. Multi-agent orchestration, cross-validation, parallel swarms, credit fallback, MCP pass-through.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aimaghsoodi.github.io/duo/">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="assets/og.png">
-<link rel="icon" href="assets/logo.svg">
+<link rel="icon" href="../assets/logo.svg">
 <style>
   :root{
-    --bg:#0d1117; --panel:#161b22; --line:#30363d;
-    --text:#e6edf3; --muted:#8b949e;
-    --claude:#f48fb1; --codex:#a5d6a7; --accent:#79c0ff;
+    --bg:#0b0e14; --panel:#11151d; --panel-2:#161b26; --line:#252b36;
+    --text:#eef1f7; --muted:#8b95a8; --dim:#5c6576;
+    --pink:#ec5fa5; --purple:#a259ff; --cyan:#6fd3ff;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
     --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --grad:linear-gradient(135deg,#ec5fa5 0%,#a259ff 100%);
   }
   *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
-  a{color:var(--accent);text-decoration:none}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;background:radial-gradient(1100px 500px at 10% -10%, rgba(236,95,165,.15), transparent 60%),radial-gradient(900px 500px at 100% 0%, rgba(162,89,255,.12), transparent 55%);pointer-events:none;z-index:-1}
+  a{color:var(--cyan);text-decoration:none}
   a:hover{text-decoration:underline}
-  .wrap{max-width:920px;margin:0 auto;padding:56px 24px 96px}
-  header{display:flex;align-items:center;gap:16px;margin-bottom:8px}
-  header img{width:56px;height:56px}
-  header .lab{color:var(--muted);font-size:14px}
-  header .lab strong{color:var(--text);font-weight:600}
-  h1{font-size:clamp(36px,6vw,64px);line-height:1.05;letter-spacing:-.02em;margin:24px 0 8px}
-  h1 .x{color:var(--muted);font-weight:400}
-  h1 .c1{color:var(--claude)}
-  h1 .c2{color:var(--codex)}
-  .tag{color:var(--muted);font-size:18px;max-width:56ch}
-  .cta{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0 40px}
-  .btn{display:inline-block;padding:10px 16px;border:1px solid var(--line);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:14px;background:var(--panel)}
-  .btn.primary{border-color:var(--accent);color:var(--accent)}
-  .btn:hover{border-color:var(--accent);text-decoration:none}
-  section{margin:48px 0}
-  h2{font-size:22px;margin:0 0 12px;letter-spacing:-.01em}
-  p{color:#c9d1d9}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
-  .card h3{margin:0 0 6px;font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted)}
-  .card p{margin:0;color:var(--text);font-size:15px}
-  pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;overflow:auto;font-family:var(--mono);font-size:13px;line-height:1.5;color:var(--text)}
-  code{font-family:var(--mono);font-size:.95em;background:#1f242c;padding:1px 6px;border-radius:4px}
-  pre code{background:transparent;padding:0}
-  .k-claude{color:var(--claude)}
-  .k-codex{color:var(--codex)}
-  .k-muted{color:var(--muted)}
-  .k-user{color:#d2a8ff}
-  footer{margin-top:72px;padding-top:24px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  .wrap{max-width:980px;margin:0 auto;padding:48px 24px 96px}
+
+  /* top bar */
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:72px}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:600}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--grad);box-shadow:0 0 20px rgba(236,95,165,.7)}
+  .brand .name{font-size:18px;letter-spacing:.2px}
+  .brand .by{color:var(--muted);font-size:13px;margin-left:8px}
+  .nav{display:flex;gap:22px;font-size:14px}
+  .nav a{color:var(--muted)}
+  .nav a:hover{color:var(--text);text-decoration:none}
+
+  /* hero */
+  .hero h1{font-size:56px;line-height:1.05;letter-spacing:-1px;margin:0 0 20px;font-weight:700}
+  .hero h1 .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .sub{font-size:19px;color:var(--muted);max-width:640px;margin:0 0 28px}
+  .hero .sub strong{color:var(--text);font-weight:500}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+  .pill{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:var(--panel)}
+  .pill b{color:var(--text);font-weight:500}
+
+  .cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:8px}
+  .install{font-family:var(--mono);font-size:15px;background:var(--panel);border:1px solid var(--line);padding:12px 16px;border-radius:10px;color:var(--text);display:inline-flex;align-items:center;gap:10px}
+  .install .prompt{color:var(--pink)}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
+  .btn:hover{text-decoration:none;border-color:var(--pink)}
+  .btn.primary{background:var(--grad);border-color:transparent;color:#fff}
+  .btn.primary:hover{filter:brightness(1.1)}
+
+  /* sections */
+  section{margin-top:80px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:600;margin:0 0 20px}
+  h3{font-size:20px;margin:0 0 8px;font-weight:600}
+
+  /* peer row */
+  .peers{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .peer{border:1px solid var(--line);border-radius:12px;padding:18px;background:var(--panel);position:relative;overflow:hidden}
+  .peer::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--c)}
+  .peer .who{font-family:var(--mono);font-size:13px;color:var(--c);font-weight:600;letter-spacing:.3px}
+  .peer .what{font-size:13px;color:var(--muted);margin-top:6px}
+  .peer.claude{--c:#ec5fa5}
+  .peer.codex{--c:#a259ff}
+  .peer.ollama{--c:#6fd3ff}
+  .peer.claw{--c:#f7b955}
+
+  /* features */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{border:1px solid var(--line);border-radius:14px;padding:22px;background:var(--panel);transition:border-color .15s}
+  .card:hover{border-color:rgba(236,95,165,.5)}
+  .card .icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,rgba(236,95,165,.18),rgba(162,89,255,.18));border:1px solid var(--line);margin-bottom:14px;font-family:var(--mono);color:var(--pink)}
+  .card p{color:var(--muted);font-size:14px;margin:0}
+
+  /* code block */
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;overflow:auto;font-family:var(--mono);font-size:13.5px;line-height:1.65;margin:0}
+  pre .c{color:var(--dim)}
+  pre .k{color:var(--pink)}
+  pre .v{color:var(--cyan)}
+  pre .s{color:#b8e4a0}
+  .codepair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .codepair .label{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+
+  /* diagram */
+  .flow{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px;font-family:var(--mono);font-size:13px;color:var(--muted);overflow:auto}
+  .flow .arrow{color:var(--pink)}
+  .flow .node{color:var(--text);font-weight:600}
+
+  /* footer */
+  footer{margin-top:96px;padding-top:28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;color:var(--muted);font-size:13px}
+  footer .links a{color:var(--muted);margin-right:16px}
+  footer .links a:hover{color:var(--text);text-decoration:none}
+
+  @media (max-width:760px){
+    .hero h1{font-size:40px}
+    .peers,.grid,.codepair{grid-template-columns:1fr}
+    .top .nav{display:none}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <header>
-    <img src="assets/logo.svg" alt="duo logo">
-    <div class="lab">an <strong>AbteeX AI Labs</strong> release</div>
-  </header>
-
-  <h1><span class="c1">claude</span> <span class="x">×</span> <span class="c2">codex</span>, together.</h1>
-  <p class="tag">
-    <strong>duo</strong> is a tiny wrapper that runs Claude Code and Codex CLI as peers in one terminal —
-    with multi-agent swarms, continuous cross-checking, and automatic credit fallback.
-    One prompt, two agents, a swarm of sub-agents, a single shared transcript.
-  </p>
-
-  <div class="cta">
-    <a class="btn primary" href="https://github.com/aimaghsoodi/duo">★ GitHub</a>
-    <a class="btn" href="https://github.com/aimaghsoodi/duo#install">Install</a>
-    <a class="btn" href="#how">How it works</a>
+  <div class="top">
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="name">DuoX</span>
+      <span class="by">by AbteeX AI Labs</span>
+    </div>
+    <nav class="nav">
+      <a href="#what">What</a>
+      <a href="#features">Features</a>
+      <a href="#start">Quick start</a>
+      <a href="https://github.com/aimaghsoodi/duo">GitHub</a>
+      <a href="https://huggingface.co/spaces/AbteeXAILabs/duox">Demo</a>
+    </nav>
   </div>
 
-  <section>
-    <h2>Why duo</h2>
-    <div class="grid">
-      <div class="card"><h3>peer to peer</h3><p>Claude plans &amp; validates. Codex executes. Both see the same transcript.</p></div>
-      <div class="card"><h3>swarm by default</h3><p>Each peer may spawn sub-agents in parallel for independent sub-tasks.</p></div>
-      <div class="card"><h3>continuous check</h3><p>Every delegated step is validated before the next — not fixed turns.</p></div>
-      <div class="card"><h3>credit fallback</h3><p>If one peer hits a rate-limit or quota, the other takes over cleanly.</p></div>
+  <section class="hero">
+    <h1>Claude · Codex · Ollama · OpenClaw<br><span class="grad">one terminal, one transcript.</span></h1>
+    <p class="sub">DuoX is a drop-in CLI alternative to <strong>Claude Code</strong> and <strong>Codex CLI</strong> that runs them <em>together</em> — plus Ollama (local) and OpenClaw (inter-agent channels) — under a single supervisor loop with a shared transcript.</p>
+
+    <div class="pills">
+      <span class="pill"><b>pip install duox</b></span>
+      <span class="pill">MIT</span>
+      <span class="pill">Python ≥ 3.10</span>
+      <span class="pill">Linux · macOS · Windows</span>
+    </div>
+
+    <div class="cta">
+      <span class="install"><span class="prompt">$</span> pip install duox</span>
+      <a class="btn primary" href="https://huggingface.co/spaces/AbteeXAILabs/duox">▶ Live demo</a>
+      <a class="btn" href="https://github.com/aimaghsoodi/duo">GitHub</a>
+      <a class="btn" href="https://pypi.org/project/duox/">PyPI</a>
     </div>
   </section>
 
-  <section id="how">
-    <h2>Install &amp; run</h2>
-    <pre><code># Requires Python 3.10+ and both CLIs installed &amp; logged in:
-#   claude   (Claude Code)
-#   codex    (Codex CLI)
+  <section id="what">
+    <h2>Four peers, one loop</h2>
+    <div class="peers">
+      <div class="peer claude">
+        <div class="who">claude</div>
+        <div class="what">Anthropic Claude Code CLI — planning & validation.</div>
+      </div>
+      <div class="peer codex">
+        <div class="who">codex</div>
+        <div class="what">OpenAI Codex CLI — execution & heavy edits.</div>
+      </div>
+      <div class="peer ollama">
+        <div class="who">ollama</div>
+        <div class="what">Local fallback — runs offline, rate-limit safety net.</div>
+      </div>
+      <div class="peer claw">
+        <div class="who">openclaw</div>
+        <div class="what">Inter-agent channel — thinking-budget + swarm mode.</div>
+      </div>
+    </div>
+    <div style="margin-top:18px" class="flow">
+<span class="node">user prompt</span>
+    ↓
+ <span class="node">supervisor</span> <span class="arrow">──▶</span> JSON decision <span style="color:var(--cyan)">{action, to, instructions}</span>
+    │
+    ├── <span class="arrow">delegate</span>   ─▶  executor peer(s) ─▶  output
+    │                          │
+    │                          └── (parallel) ─▶  merge
+    ├── <span class="arrow">execute_self</span>
+    ├── <span class="arrow">validate</span>
+    └── <span class="arrow">done</span>       ─▶  final answer
+    </div>
+  </section>
 
-pip install duox
+  <section id="features">
+    <h2>What you get</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">⇄</div>
+        <h3>Shared transcript</h3>
+        <p>Every peer sees every message. No more copy-pasting between terminals — one scrolling interface for the whole swarm.</p>
+      </div>
+      <div class="card">
+        <div class="icon">✓</div>
+        <h3>Cross-validation</h3>
+        <p>The supervisor checks every delegated step before moving on. Catch wrong edits before they compound.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⇉</div>
+        <h3>Parallel swarms</h3>
+        <p>Fan the same task across peers and let the supervisor merge results — or run independent jobs in parallel.</p>
+      </div>
+      <div class="card">
+        <div class="icon">↻</div>
+        <h3>Credit fallback</h3>
+        <p>429 / rate-limit / out-of-credits auto-fails over to another peer. Local Ollama is the last-resort net.</p>
+      </div>
+      <div class="card">
+        <div class="icon">@</div>
+        <h3>@file mentions</h3>
+        <p>Inline file, directory, and line-range excerpts in any prompt. <code style="font-family:var(--mono);color:var(--pink)">@src/main.py:40-80</code> just works.</p>
+      </div>
+      <div class="card">
+        <div class="icon">▤</div>
+        <h3>Headless mode</h3>
+        <p><code style="font-family:var(--mono);color:var(--pink)">duox -p</code> gives you plain-text or JSON output — drop it into CI, git hooks, or scripts.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚙</div>
+        <h3>MCP pass-through</h3>
+        <p>Configure <code style="font-family:var(--mono);color:var(--pink)">[mcp.servers.*]</code> once; DuoX forwards them to Claude Code automatically.</p>
+      </div>
+      <div class="card">
+        <div class="icon">◇</div>
+        <h3>Skills & hooks</h3>
+        <p>Markdown prompts in <code style="font-family:var(--mono);color:var(--pink)">~/.duo/skills/</code> auto-inject by keyword. Pre/post hooks run your tests and linters.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚭</div>
+        <h3>HTTP API</h3>
+        <p><code style="font-family:var(--mono);color:var(--pink)">duox serve</code> exposes goals and sessions over JSON for remote control and automation.</p>
+      </div>
+    </div>
+  </section>
 
-duox "scaffold a python todo cli in ./scratch with pytest tests"
-duox --once "fix the failing auth tests"        # one-shot, then exit
-duox -p "summarise recent changes" --output-format json
-duox doctor                                     # verify peers / MCP / readline</code></pre>
+  <section id="start">
+    <h2>Quick start</h2>
+    <div class="codepair">
+      <div>
+        <div class="label">Interactive</div>
+<pre><span class="c"># install + verify peers</span>
+<span class="k">$</span> pip install duox
+<span class="k">$</span> duox init
+<span class="k">$</span> duox doctor
+
+<span class="c"># start the loop</span>
+<span class="k">$</span> duox
+<span class="v">></span> refactor the auth module
+<span class="v">></span> @src/api.py:1-60 add tests for the error paths
+<span class="v">></span> /peers  /cost  /compact  /remember</pre>
+      </div>
+      <div>
+        <div class="label">Headless / scripting</div>
+<pre><span class="c"># plain text out</span>
+<span class="k">$</span> duox -p <span class="s">"summarise the last 10 commits"</span>
+
+<span class="c"># JSON envelope with per-peer stats</span>
+<span class="k">$</span> duox -p <span class="s">"audit this PR"</span> --output-format json
+
+<span class="c"># pipe stdin</span>
+<span class="k">$</span> echo <span class="s">"review my changes"</span> | duox -p
+
+<span class="c"># specific peers + supervisor</span>
+<span class="k">$</span> duox --peers claude,codex,ollama \
+       --supervisor claude --parallel</pre>
+      </div>
+    </div>
   </section>
 
   <section>
-    <h2>What you see</h2>
-<pre><code><span class="k-user">▸ USER GOAL</span>
-<span class="k-user">│ scaffold a python todo cli in ./scratch with pytest tests</span>
-
-<span class="k-claude">┌─ step  1 · CLAUDE · decide  · 14:22:07</span>
-<span class="k-claude">│ decision: delegate → codex   fan out scaffolding + failing tests in parallel</span>
-<span class="k-claude">│   sub-agent A: create ./scratch/todo/{__init__.py,cli.py}</span>
-<span class="k-claude">│   sub-agent B: create tests/test_cli.py with 3 failing cases</span>
-<span class="k-claude">│   sub-agent C: write pyproject.toml with [project.scripts]</span>
-
-<span class="k-codex">┌─ step  1 · CODEX · execute  · 14:22:09</span>
-<span class="k-codex">│ spawning 3 sub-agents in parallel…</span>
-<span class="k-codex">│ A ✓   B ✓   C ✓</span>
-
-<span class="k-claude">┌─ step  1 · CLAUDE · validate · 14:22:41</span>
-<span class="k-claude">│ • files created ✓</span>
-<span class="k-claude">│ • pytest reports 3 failing tests ✓</span>
-<span class="k-claude">│ • next: implement cli.add / cli.list to make tests pass</span></code></pre>
-  </section>
-
-  <section>
-    <h2>Safety</h2>
-    <p>duo runs both CLIs with their most permissive flags so they can actually do work without interrupting you.
-    Use it in a directory you trust — ideally a scratch repo, container, or VM. Read the transcript; these are still agents.</p>
+    <h2>Try it live</h2>
+    <p style="color:var(--muted);max-width:720px">A Gradio demo of the supervisor/executor loop, running on a Hugging Face-hosted model instead of real peer CLIs. Install <code style="font-family:var(--mono);color:var(--pink)">duox</code> locally for the real thing.</p>
+    <div class="cta" style="margin-top:16px">
+      <a class="btn primary" href="https://huggingface.co/spaces/AbteeXAILabs/duox">▶ Open Hugging Face Space</a>
+      <a class="btn" href="https://github.com/aimaghsoodi/duo#quick-start">Full docs</a>
+    </div>
   </section>
 
   <footer>
-    <div>© 2026 <strong>AbteeX AI Labs</strong> · MIT License</div>
-    <div><a href="https://github.com/aimaghsoodi/duo">github.com/aimaghsoodi/duo</a></div>
+    <div>© 2026 <strong style="color:var(--text)">AbteeX AI Labs</strong> · MIT License</div>
+    <div class="links">
+      <a href="https://github.com/aimaghsoodi/duo">GitHub</a>
+      <a href="https://pypi.org/project/duox/">PyPI</a>
+      <a href="https://huggingface.co/AbteeXAILabs">Hugging Face</a>
+      <a href="https://huggingface.co/spaces/AbteeXAILabs/duox">Demo</a>
+      <a href="https://github.com/aimaghsoodi/duo/issues">Issues</a>
+    </div>
   </footer>
-
 </div>
 </body>
 </html>
