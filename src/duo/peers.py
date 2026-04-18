@@ -166,14 +166,40 @@ def _stream(cmd: list[str], role: str, *, stdin_text: Optional[str] = None,
             pass
 
     buf: list[str] = []
+    err_buf: list[str] = []
     assert p.stdout is not None
     hb = _Heartbeat(role)
     hb.start()
-    # If a TUI is attached, show a spinner so the user knows this peer is
-    # running (codex exec can be silent for a while before emitting output).
-    if not _quiet and _tui is not None and hasattr(_tui, "status"):
-        try: _tui.status(f"{role} running…")
-        except Exception: pass
+
+    t_start = time.time()
+    spinner_stop = threading.Event()
+
+    def spin():
+        # Update the TUI spinner with elapsed seconds so the user sees progress
+        # even when a peer (codex) is silent between events.
+        while not spinner_stop.is_set():
+            if not _quiet and _tui is not None and hasattr(_tui, "status"):
+                try: _tui.status(f"{role} running… {time.time()-t_start:.0f}s")
+                except Exception: pass
+            spinner_stop.wait(1.0)
+
+    def drain_stderr():
+        # codex exec writes live progress to stderr — surface it too.
+        if p.stderr is None:
+            return
+        for ln in p.stderr:
+            err_buf.append(ln)
+            if _quiet:
+                continue
+            s = ln.rstrip()
+            if s:
+                _sink(role, s + "\n")
+
+    spin_thr = threading.Thread(target=spin, daemon=True)
+    err_thr = threading.Thread(target=drain_stderr, daemon=True)
+    spin_thr.start()
+    err_thr.start()
+
     try:
         for line in p.stdout:
             buf.append(line)
@@ -185,14 +211,14 @@ def _stream(cmd: list[str], role: str, *, stdin_text: Optional[str] = None,
             hb.resume()
     finally:
         hb.stop()
+        spinner_stop.set()
+        spin_thr.join(timeout=1.0)
         if not _quiet and _tui is not None and hasattr(_tui, "clear_status"):
             try: _tui.clear_status()
             except Exception: pass
     rc = p.wait()
-    err = p.stderr.read() if p.stderr else ""
-    if err.strip():
-        for ln in err.splitlines():
-            _sink("err", f"! {ln}\n")
+    err_thr.join(timeout=2.0)
+    err = "".join(err_buf)
     return ("".join(buf), err, rc)
 
 

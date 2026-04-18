@@ -346,10 +346,11 @@ def main() -> int:
         if not p.cmd_ok:
             print(color("err", f"⚠  peer '{p.name}' not on PATH — skipped"))
     active = [p.name for p in state.live_peers()]
+    peer_status = [(p.name, p.cmd_ok and p.alive) for p in state.peers.values()]
     use_tui_hint = (args.tui if args.tui is not None else
                     cfg.tui == "on" or (cfg.tui == "auto" and len(active) >= 2))
     welcome(
-        active_peers=active,
+        peer_status=peer_status,
         supervisor=state.supervisor,
         session_id=session.id,
         skills=len(state.skills),

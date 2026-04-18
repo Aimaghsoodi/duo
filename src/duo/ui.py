@@ -72,9 +72,9 @@ TIPS = [
 ]
 
 
-def welcome(active_peers: list[str], supervisor: str, session_id: str,
+def welcome(peer_status: list[tuple[str, bool]], supervisor: str, session_id: str,
             skills: int = 0, mcp: bool = False, tui: bool = False) -> None:
-    """Claude-Code-style welcome banner with tips."""
+    """Claude-Code-style welcome banner with status dots."""
     from . import __version__
     hdr = color("hdr", "╭" + "─" * 70 + "╮")
     ftr = color("hdr", "╰" + "─" * 70 + "╯")
@@ -90,7 +90,14 @@ def welcome(active_peers: list[str], supervisor: str, session_id: str,
     print(row(f"{BOLD}DuoX{RESET} {DIM}v{__version__}{RESET}  "
               f"{DIM}— claude × codex peers in one terminal{RESET}"))
     print(row(""))
-    peers_s = "  ".join(color(p, p) for p in active_peers) or color("err", "(none)")
+    GREEN = "\x1b[38;5;118m"
+    RED   = "\x1b[38;5;203m"
+    bits = []
+    for name, on in peer_status:
+        dot = f"{GREEN}●{RESET}" if on else f"{RED}○{RESET}"
+        label = f"{name}" if on else f"{DIM}{name} off{RESET}"
+        bits.append(f"{dot} {label}")
+    peers_s = "   ".join(bits) or color("err", "(none)")
     print(row(f"peers:       {peers_s}"))
     print(row(f"supervisor:  {color(supervisor, supervisor)}"))
     print(row(f"session:     {DIM}{session_id}{RESET}"))
